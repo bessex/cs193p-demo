@@ -11,39 +11,123 @@ struct EmojiMemoryGameView: View {
     // Tells View to redraw whenever ViewModel publishes changes
     @ObservedObject var game: EmojiMemoryGame
     
+    @Namespace private var dealingNamespace
+    
     var body: some View {
-        VStack {
-            Text("Memorize \(game.themeName)!")
-                .font(.largeTitle)
-            
-            AspectVGrid(items: game.cards, aspectRatio: 2/3) { card in
-                if card.isMatched && !card.isFaceUp {
-                    Rectangle().opacity(0)
-                } else {
-                    CardView(card: card, cardColor: gameColor(from: game.cardColor))
-                        .padding(4)
-                        .onTapGesture {
+        ZStack(alignment: .bottom) {
+            deck
+            VStack {
+                Text("Memorize \(game.themeName)!").font(.largeTitle)
+                cards
+                Spacer()
+                toolbar
+            }
+            .padding()
+        }
+    }
+    
+    @State private var dealt = Set<Int>()
+    
+    private func deal(_ card: EmojiMemoryGame.Card) {
+        dealt.insert(card.id)
+    }
+    
+    private func isUndealt(_ card: EmojiMemoryGame.Card) -> Bool {
+        !dealt.contains(card.id)
+    }
+    
+    private func dealAnimation(for card: EmojiMemoryGame.Card) -> Animation {
+        var delay = 0.0
+        if let index = game.cards.firstIndex(where: { $0.id == card.id }) {
+            delay = Double(index) * (CardConstants.totalDealDuration / Double(game.cards.count))
+        }
+        return Animation.easeInOut(duration: CardConstants.dealDuration).delay(delay)
+    }
+    
+    private func zIndex(of card: EmojiMemoryGame.Card) -> Double {
+        -Double(game.cards.firstIndex(where: { $0.id == card.id }) ?? 0)
+    }
+    
+    private var cards: some View {
+        AspectVGrid(items: game.cards, aspectRatio: CardConstants.aspectRatio) { card in
+            if isUndealt(card) || (card.isMatched && !card.isFaceUp) {
+                Color.clear
+            } else {
+                CardView(card: card)
+                    .matchedGeometryEffect(id: card.id, in: dealingNamespace)
+                    .padding(CardConstants.cardPadding)
+                    .transition(.asymmetric(insertion: .identity, removal: .scale))
+                    .zIndex(zIndex(of: card))
+                    .onTapGesture {
+                        withAnimation {
                             game.choose(card)
                         }
+                    }
+            }
+        }
+        .foregroundColor(gameColor(from: game.cardColor))
+    }
+    
+    private var toolbar: some View {
+        HStack {
+            Text("Score: \(game.score)")
+            Spacer()
+            shuffle
+            newGame
+        }
+        .font(.largeTitle)
+    }
+    
+    private var deck: some View {
+        ZStack {
+            ForEach(game.cards.filter(isUndealt)) { card in
+                CardView(card: card)
+                    .matchedGeometryEffect(id: card.id, in: dealingNamespace)
+                    .transition(.asymmetric(insertion: .opacity, removal: .identity))
+            }
+        }
+        .frame(width: CardConstants.undealtWidth, height: CardConstants.undealtHeight)
+        .foregroundColor(gameColor(from: game.cardColor))
+        .onTapGesture {
+            // "deal" cards
+            for card in game.cards {
+                withAnimation(dealAnimation(for: card)) {
+                    deal(card)
                 }
             }
-            
-            Spacer()
-            
-            HStack {
-                Text("Score: \(game.score)")
-                Spacer()
-                newGame
-            }
-            .font(.largeTitle)
-            
         }
-        .padding(.horizontal)
+    }
+    
+    private struct CardConstants {
+        static let totalDealDuration: Double = 1
+        static let dealDuration: CGFloat = 0.5
+        static let cardPadding: CGFloat = 4
+        static let aspectRatio: CGFloat = 2/3
+        static let undealtHeight: CGFloat = 90
+        static let undealtWidth = undealtHeight * aspectRatio
+    }
+    
+    private var shuffle: some View {
+        Button {
+            withAnimation {
+                game.shuffle()
+            }
+        } label: {
+            VStack {
+                Image(systemName: "shuffle")
+                
+                Text("Shuffle")
+                    .font(.subheadline)
+            }
+        }
     }
     
     private var newGame: some View {
         Button {
-            game.startNewGame()
+            withAnimation {
+                dealt = []
+                game.startNewGame()
+            }
         } label: {
             VStack {
                 Image(systemName: "plus")
@@ -78,34 +162,33 @@ struct EmojiMemoryGameView: View {
 
 struct CardView: View {
     let card: EmojiMemoryGame.Card
-    let cardColor: Color
     
     var body: some View {
         GeometryReader { geometry in
             ZStack {
-                let shape = RoundedRectangle(cornerRadius: DrawingConstants.cornerRadius)
-                
-                if card.isFaceUp {
-                    shape.fill().foregroundColor(.white)
-                    shape.strokeBorder(lineWidth: DrawingConstants.lineWidth).foregroundColor(cardColor)
-                    Text(card.content).font(font(in: geometry.size))
-                } else if card.isMatched {
-                    shape.opacity(0)
-                } else {
-                    shape.fill().foregroundColor(cardColor)
-                }
-            }
+                Pie(startAngle: Angle(degrees: -90), endAngle: Angle(degrees: 20))
+                    .padding(DrawingConstants.circlePadding)
+                    .opacity(DrawingConstants.circleOpacity)
+                Text(card.content)
+                    .rotationEffect(Angle(degrees: card.isMatched ? 360 : 0))
+                    .animation(.easeInOut(duration: 1), value: card.isMatched)
+                    .font(.system(size: 32))
+                    .scaleEffect(scale(thatFits: geometry.size))
+            }.cardify(isFaceUp: card.isFaceUp)
         }
     }
     
-    private func font(in size: CGSize) -> Font {
-        Font.system(size: min(size.width, size.height) * DrawingConstants.fontScale)
+    private func scale(thatFits size: CGSize) -> CGFloat {
+        min(size.width, size.height) / (DrawingConstants.fontSize / DrawingConstants.fontScale)
     }
     
     private struct DrawingConstants {
         static let cornerRadius: CGFloat = 10
         static let lineWidth: CGFloat = 3
-        static let fontScale: CGFloat = 0.75
+        static let fontScale: CGFloat = 0.70
+        static let circlePadding: CGFloat = 5
+        static let circleOpacity: CGFloat = 0.5
+        static let fontSize: CGFloat = 32
     }
 }
 
@@ -144,11 +227,7 @@ struct CardView: View {
 struct ContentView_Previews: PreviewProvider {
     static var previews: some View {
         let game = EmojiMemoryGame()
-        EmojiMemoryGameView(game: game)
-            .preferredColorScheme(.dark)
-            .previewInterfaceOrientation(.portrait)
-        EmojiMemoryGameView(game: game)
-            .preferredColorScheme(.light)
-            .previewInterfaceOrientation(.portrait)
+        game.choose(game.cards.first!)
+        return EmojiMemoryGameView(game: game)
     }
 }
