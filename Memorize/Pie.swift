@@ -7,16 +7,16 @@
 
 import SwiftUI
 
-struct Pie: Shape, Animatable {
+struct Pie: Shape {
     
     var animatableData: AnimatablePair<Double, Double> {
         get {
-            AnimatablePair(startAngle.degrees, endAngle.degrees)
+            AnimatablePair(startAngle.radians, endAngle.radians)
         }
         
         set {
-            startAngle = Angle(degrees: newValue.first)
-            endAngle = Angle(degrees: newValue.second)
+            startAngle = Angle(radians: newValue.first)
+            endAngle = Angle(radians: newValue.second)
         }
     }
     
@@ -29,7 +29,7 @@ struct Pie: Shape, Animatable {
         let center = CGPoint(x: rect.midX, y: rect.midY)
         let radius = min(rect.width, rect.height) / 2
         let start = CGPoint(
-            x: center.x + radius * cos(startAngle.radians),
+            x: center.x + radius * Darwin.cos(startAngle.radians),
             y: center.y + radius * sin(startAngle.radians)
         )
         
