@@ -2,7 +2,7 @@
 //  AspectVGrid.swift
 //  Memorize
 //
-//  Created by Ben Essex and Paul Haggerty on 05 Jun 22.
+//  Created by Ben Essex and Paul Hegarty on 05 Jun 22.
 //
 
 import SwiftUI

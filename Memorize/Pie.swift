@@ -2,7 +2,7 @@
 //  Pie.swift
 //  Memorize
 //
-//  Created by Ben Essex and Paul Haggerty on 11 Jun 22.
+//  Created by Ben Essex and Paul Hegarty on 11 Jun 22.
 //
 
 import SwiftUI

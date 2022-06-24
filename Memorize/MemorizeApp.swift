@@ -2,7 +2,7 @@
 //  MemorizeApp.swift
 //  Memorize
 //
-//  Created by Ben Essex and Paul Haggerty on 29 May 22.
+//  Created by Ben Essex and Paul Hegarty on 29 May 22.
 //
 
 import SwiftUI

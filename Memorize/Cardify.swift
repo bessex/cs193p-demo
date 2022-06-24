@@ -2,7 +2,7 @@
 //  Cardify.swift
 //  Memorize
 //
-//  Created by Ben Essex and Paul Haggerty on 12 Jun 22.
+//  Created by Ben Essex and Paul Hegarty on 12 Jun 22.
 //
 
 import SwiftUI

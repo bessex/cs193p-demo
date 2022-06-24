@@ -2,7 +2,7 @@
 //  EmojiMemoryGame.swift
 //  Memorize
 //
-//  Created by Ben Essex and Paul Haggerty on 03 Jun 22.
+//  Created by Ben Essex and Paul Hegarty on 03 Jun 22.
 //
 
 import SwiftUI
